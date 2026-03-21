@@ -10,6 +10,8 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T 
     }
   });
 
+  // Use functional setStoredValue so multiple rapid calls (e.g. addXP +
+  // incrementQuestsCompleted) don't clobber each other via stale closure.
   const setValue = (value: T | ((prev: T) => T)) => {
     try {
       setStoredValue((current) => {
