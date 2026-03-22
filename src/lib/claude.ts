@@ -22,26 +22,60 @@ const WEIGHTS: { category: QuestCategory; weight: number }[] = [
   { category: 'physical',    weight: 0.15 },
 ];
 
-function pickCategory(previousCategories: string[], lastRolledCategory: string | null): QuestCategory {
+// Vibe-adjusted category weights: [social, creative, exploration, physical]
+const VIBE_WEIGHTS: Record<string, Record<string, number[]>> = {
+  'burnt-out': {
+    decompress: [0.25, 0.45, 0.25, 0.05],
+    creative:   [0.15, 0.60, 0.20, 0.05],
+    default:    [0.30, 0.40, 0.25, 0.05],
+  },
+  anxious: {
+    decompress: [0.10, 0.55, 0.25, 0.10],
+    creative:   [0.10, 0.65, 0.20, 0.05],
+    default:    [0.15, 0.50, 0.25, 0.10],
+  },
+  energized: {
+    move:       [0.15, 0.15, 0.30, 0.40],
+    explore:    [0.15, 0.20, 0.50, 0.15],
+    socialize:  [0.50, 0.20, 0.20, 0.10],
+    default:    [0.25, 0.25, 0.30, 0.20],
+  },
+  bored: {
+    default:    [0.25, 0.30, 0.30, 0.15],
+  },
+};
+
+function pickCategory(
+  previousCategories: string[],
+  lastRolledCategory: string | null,
+  vibeContext?: { mood: string; time: string; goal?: string }
+): QuestCategory {
+  const cats: QuestCategory[] = ['social', 'creative', 'exploration', 'physical'];
+
+  // Pick weights based on vibe, fall back to static defaults
+  let weights = WEIGHTS.map(w => w.weight);
+  if (vibeContext?.mood) {
+    const moodWeights = VIBE_WEIGHTS[vibeContext.mood];
+    if (moodWeights) {
+      const goalKey = vibeContext.goal && moodWeights[vibeContext.goal] ? vibeContext.goal : 'default';
+      weights = moodWeights[goalKey] ?? weights;
+    }
+  }
+
   const draw = (): QuestCategory => {
     const r = Math.random();
     let cumulative = 0;
-    for (const { category, weight } of WEIGHTS) {
-      cumulative += weight;
-      if (r < cumulative) return category;
+    for (let i = 0; i < cats.length; i++) {
+      cumulative += weights[i];
+      if (r < cumulative) return cats[i];
     }
-    return 'social';
+    return cats[0];
   };
 
   const picked = draw();
-
-  // Don't repeat the last rolled category (covers rerolls, not just completions)
   if (picked === lastRolledCategory) return draw();
-
-  // Also don't repeat if the last 2 completed quests were both this category
   const last2 = previousCategories.slice(0, 2);
   if (last2.length === 2 && last2.every((c) => c === picked)) return draw();
-
   return picked;
 }
 
@@ -85,7 +119,7 @@ export async function generateQuest(
   lastRolledCategory: string | null = null,
   vibeContext?: { mood: string; time: string; goal?: string }
 ): Promise<GeneratedQuest> {
-  const category = pickCategory(previousCategories, lastRolledCategory);
+  const category = pickCategory(previousCategories, lastRolledCategory, vibeContext);
 
   // Fetch real nearby places from OpenStreetMap (best-effort — fails silently)
   const { featured, all: pois } = await fetchNearbyPOIs(lat, lng);
@@ -99,6 +133,10 @@ export async function generateQuest(
         return `\nUser vibe:\n- Feeling: ${moodLabel}\n- Available time: ${timeLabel}${goalLabel ? `\n- Goal: ${goalLabel}` : ''}\n${tone}`;
       })()
     : '';
+
+  const timeConstraint = vibeContext
+    ? TIME_LABELS[vibeContext.time] ?? '30-60 minutes'
+    : '30-60 minutes';
 
   const featuredSection = featured
     ? `\nThis quest MUST be built around this specific real place: ${featured.name} (${featured.type}). Use its exact name in the title or description.`
@@ -117,7 +155,7 @@ export async function generateQuest(
   const prompt = `Generate ONE creative micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
 
 The quest must:
-- Be completable within walking distance in 30-60 minutes
+- Be completable within walking distance in ${timeConstraint}
 - Be genuinely fun, slightly unexpected, and grounded in this specific place
 - Be safe and legal
 - Have a concrete completion condition that can be photographed
@@ -132,11 +170,20 @@ Respond ONLY with valid JSON matching this schema:
   "xpReward": number between 50 and 200
 }`;
 
+  const vibeSystemSection = vibeContext
+    ? (() => {
+        const moodLabel = MOOD_LABELS[vibeContext.mood] ?? vibeContext.mood;
+        const goalLabel = vibeContext.goal ? GOAL_LABELS[vibeContext.goal] ?? vibeContext.goal : null;
+        const tone = MOOD_TONE[vibeContext.mood] ?? '';
+        return ` The user is ${moodLabel}${goalLabel ? ` and wants to ${goalLabel}` : ''}. ${tone}`;
+      })()
+    : '';
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 350,
     temperature: 1,
-    system: `You are a micro-adventure quest generator. You MUST set the "category" field to exactly "${category}" — never any other value. This is a hard requirement.`,
+    system: `You are a micro-adventure quest generator. You MUST set the "category" field to exactly "${category}" — never any other value. This is a hard requirement.${vibeSystemSection}`,
     messages: [{ role: 'user', content: prompt }],
   });
 
