@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { generateQuest } from '../lib/claude';
 import type { Quest } from '../types';
 
@@ -17,17 +17,24 @@ export function useQuestGeneration() {
     error: null,
   });
 
+  // Track the last rolled category across rolls (not just completed quests)
+  const lastRolledCategory = useRef<string | null>(null);
+
   const generate = useCallback(
     async (
       lat: number,
       lng: number,
       locationLabel: string,
-      previousTitles: string[] = []
+      previousTitles: string[] = [],
+      previousCategories: string[] = []
     ): Promise<Quest | null> => {
       setState({ status: 'loading', pendingQuest: null, error: null });
 
       try {
-        const result = await generateQuest(lat, lng, locationLabel, previousTitles);
+        const result = await generateQuest(
+          lat, lng, locationLabel, previousTitles, previousCategories, lastRolledCategory.current
+        );
+        lastRolledCategory.current = result.category;
         const quest: Quest = {
           id: crypto.randomUUID(),
           ...result,
