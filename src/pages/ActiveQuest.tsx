@@ -165,7 +165,7 @@ export default function ActiveQuest() {
                   HINT {i + 1}
                 </span>
                 <p style={{ fontSize: '12px', fontFamily: '"Inter", sans-serif', color: '#8877aa', lineHeight: 1.7, fontStyle: 'italic' }}>
-                  "{activeQuest.clues[i + 1]}"
+                  "{activeQuest.clues?.[i + 1]}"
                 </p>
               </div>
             ))}
