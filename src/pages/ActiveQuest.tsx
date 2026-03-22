@@ -44,7 +44,7 @@ export default function ActiveQuest() {
   })();
 
   useEffect(() => {
-    if (searchParams.get('mode') === 'active' && activeQuest) { setMode('active'); return; }
+    if (activeQuest) { setMode('active'); return; }
     if (squadQuest) { hydrateSquadQuest(); return; }
     if (!hasGenerated.current) { hasGenerated.current = true; doGenerate(); }
   }, []);
