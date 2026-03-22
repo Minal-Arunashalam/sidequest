@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { compressImage } from '../lib/share';
+import { postBroadcast, deleteBroadcast } from '../lib/broadcasts';
 import QuestCard from '../components/QuestCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import PixelButton from '../components/ui/PixelButton';
@@ -22,11 +23,29 @@ export default function ActiveQuest() {
   const [earnedXP, setEarnedXP] = useState(0);
   const [isRerolling, setIsRerolling] = useState(false);
   const [revealedClues, setRevealedClues] = useState(1);
+  const [squadPendingQuest, setSquadPendingQuest] = useState<import('../types').Quest | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasGenerated = useRef(false);
+  const broadcastId = useRef<string | null>(null);
+
+  // Squad quest loaded from Nearby feed
+  const squadQuest = (() => {
+    const title = searchParams.get('sq_title');
+    if (!title) return null;
+    return {
+      title,
+      description: searchParams.get('sq_desc') ?? '',
+      category: searchParams.get('sq_cat') as import('../types').QuestCategory,
+      difficulty: Number(searchParams.get('sq_diff') ?? 2) as 1 | 2 | 3,
+      xpReward: Number(searchParams.get('sq_xp') ?? 100),
+      isMystery: searchParams.get('sq_mystery') === 'true',
+      clues: searchParams.get('sq_clues') ? JSON.parse(searchParams.get('sq_clues')!) as string[] : undefined,
+    };
+  })();
 
   useEffect(() => {
     if (searchParams.get('mode') === 'active' && activeQuest) { setMode('active'); return; }
+    if (squadQuest) { hydrateSquadQuest(); return; }
     if (!hasGenerated.current) { hasGenerated.current = true; doGenerate(); }
   }, []);
 
@@ -39,6 +58,34 @@ export default function ActiveQuest() {
   })();
 
   const isMysteryMode = searchParams.get('mystery') === 'true';
+
+  async function hydrateSquadQuest() {
+    if (!squadQuest) return;
+    setMode('generating');
+    try {
+      const geo = location ? { location, locationLabel } : await getLocation();
+      const quest: import('../types').Quest = {
+        id: crypto.randomUUID(),
+        title: squadQuest.title,
+        description: squadQuest.description,
+        category: squadQuest.category,
+        difficulty: squadQuest.difficulty,
+        xpReward: squadQuest.xpReward,
+        isMystery: squadQuest.isMystery,
+        clues: squadQuest.clues,
+        location: geo.location,
+        locationLabel: geo.locationLabel,
+        status: 'pending',
+        generatedAt: Date.now(),
+      };
+      setSquadPendingQuest(quest);
+      setMode('preview');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setLocalError(msg);
+      setMode('error');
+    }
+  }
 
   async function doGenerate() {
     setMode('generating');
@@ -68,11 +115,18 @@ export default function ActiveQuest() {
     finally { setIsRerolling(false); }
   }
 
-  function handleAccept() {
-    if (!pendingQuest) return;
-    addQuest({ ...pendingQuest, status: 'active' as const });
+  async function handleAccept() {
+    const quest = squadPendingQuest ?? pendingQuest;
+    if (!quest) return;
+    addQuest({ ...quest, status: 'active' as const });
     setRevealedClues(1);
     setMode('active');
+    // Broadcast to nearby feed
+    const geo = location ? { location, locationLabel } : null;
+    if (geo) {
+      const id = await postBroadcast({ ...quest, status: 'active' as const }, geo.location.lat, geo.location.lng);
+      broadcastId.current = id;
+    }
   }
 
   async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -89,6 +143,7 @@ export default function ActiveQuest() {
     const finalXP = Math.max(50, activeQuest.xpReward - hintsUsed * 50);
     setEarnedXP(finalXP);
     completeQuest(activeQuest.id, photo, finalXP, addXP, incrementQuestsCompleted);
+    if (broadcastId.current) { deleteBroadcast(broadcastId.current); broadcastId.current = null; }
     setIsSubmitting(false);
     setShowXPModal(true);
   }
@@ -119,16 +174,20 @@ export default function ActiveQuest() {
     );
   }
 
-  if (mode === 'preview' && pendingQuest) {
+  const previewQuest = squadPendingQuest ?? pendingQuest;
+  if (mode === 'preview' && previewQuest) {
+    const isSquad = !!squadPendingQuest;
     return (
       <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', padding: '24px 20px', gap: '16px', background: '#0a0a0f' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', fontSize: '10px', fontFamily: '"Press Start 2P", monospace', color: '#5555aa', cursor: 'pointer', letterSpacing: '0.05em' }}>
             ← BACK
           </button>
-          <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#3a3a5f', letterSpacing: '0.06em' }}>NEW QUEST</span>
+          <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: isSquad ? '#f72585' : '#3a3a5f', letterSpacing: '0.06em' }}>
+            {isSquad ? '👥 SQUAD QUEST' : 'NEW QUEST'}
+          </span>
         </div>
-        <QuestCard quest={pendingQuest} onAccept={handleAccept} onReroll={handleReroll} isRerolling={isRerolling} />
+        <QuestCard quest={previewQuest} onAccept={handleAccept} onReroll={isSquad ? () => navigate('/nearby') : handleReroll} isRerolling={isRerolling} />
       </div>
     );
   }
@@ -235,7 +294,7 @@ export default function ActiveQuest() {
           <PixelButton variant="primary" size="lg" fullWidth disabled={!photo || isSubmitting} onClick={handleSubmit}>
             {isSubmitting ? 'SUBMITTING...' : '✓ COMPLETE QUEST'}
           </PixelButton>
-          <PixelButton variant="danger" size="sm" fullWidth onClick={() => { if (confirm('Abandon this quest?')) { clearActiveQuest(); reset(); navigate('/'); } }}>
+          <PixelButton variant="danger" size="sm" fullWidth onClick={() => { if (confirm('Abandon this quest?')) { if (broadcastId.current) { deleteBroadcast(broadcastId.current); broadcastId.current = null; } clearActiveQuest(); reset(); navigate('/'); } }}>
             ✕ ABANDON
           </PixelButton>
         </div>

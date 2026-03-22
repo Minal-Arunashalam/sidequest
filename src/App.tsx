@@ -6,6 +6,7 @@ import ActiveQuest from './pages/ActiveQuest';
 import VibePicker from './pages/VibePicker';
 import QuestLog from './pages/QuestLog';
 import Recap from './pages/Recap';
+import Nearby from './pages/Nearby';
 
 function Layout() {
   return (
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: 'quest', element: <ActiveQuest /> },
       { path: 'log', element: <QuestLog /> },
       { path: 'recap', element: <Recap /> },
+      { path: 'nearby', element: <Nearby /> },
     ],
   },
 ]);

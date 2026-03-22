@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { to: '/',      label: 'HOME',  icon: '⌂'  },
-  { to: '/log',   label: 'LOG',   icon: '≡'  },
-  { to: '/recap', label: 'RECAP', icon: '◈'  },
+  { to: '/',       label: 'HOME',   icon: '⌂'  },
+  { to: '/nearby', label: 'NEARBY', icon: '◉'  },
+  { to: '/log',    label: 'LOG',    icon: '≡'  },
+  { to: '/recap',  label: 'RECAP',  icon: '◈'  },
 ];
 
 export default function NavBar() {
