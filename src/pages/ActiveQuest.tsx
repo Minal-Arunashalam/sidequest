@@ -85,8 +85,10 @@ export default function ActiveQuest() {
   async function handleSubmit() {
     if (!activeQuest || !photo) return;
     setIsSubmitting(true);
-    setEarnedXP(activeQuest.xpReward);
-    completeQuest(activeQuest.id, photo, activeQuest.xpReward, addXP, incrementQuestsCompleted);
+    const hintsUsed = activeQuest.isMystery ? revealedClues - 1 : 0;
+    const finalXP = Math.max(50, activeQuest.xpReward - hintsUsed * 50);
+    setEarnedXP(finalXP);
+    completeQuest(activeQuest.id, photo, finalXP, addXP, incrementQuestsCompleted);
     setIsSubmitting(false);
     setShowXPModal(true);
   }
@@ -146,25 +148,41 @@ export default function ActiveQuest() {
         </div>
 
         {activeQuest.isMystery && activeQuest.clues ? (
-          <div style={{ background: '#13131f', border: '2px solid #9b5de5', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <span style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#9b5de5', letterSpacing: '0.06em' }}>
-                🔍 CLUE {revealedClues} OF {activeQuest.clues.length}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Clue 1 — the quest */}
+            <div style={{ background: '#13131f', border: '2px solid #9b5de5', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
+              <span style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#9b5de5', letterSpacing: '0.06em', display: 'block', marginBottom: '12px' }}>
+                🔍 YOUR CLUE
               </span>
+              <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#c8b8e8', lineHeight: 1.8, fontStyle: 'italic' }}>
+                "{activeQuest.clues[0]}"
+              </p>
             </div>
-            <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#c8b8e8', lineHeight: 1.8, fontStyle: 'italic' }}>
-              "{activeQuest.clues[revealedClues - 1]}"
-            </p>
+            {/* Revealed hints */}
+            {Array.from({ length: revealedClues - 1 }).map((_, i) => (
+              <div key={i} style={{ background: '#13131f', border: '2px solid #3a2a5f', padding: '16px 20px', boxShadow: '4px 4px 0px #000' }}>
+                <span style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#5533aa', letterSpacing: '0.06em', display: 'block', marginBottom: '10px' }}>
+                  HINT {i + 1}
+                </span>
+                <p style={{ fontSize: '12px', fontFamily: '"Inter", sans-serif', color: '#8877aa', lineHeight: 1.7, fontStyle: 'italic' }}>
+                  "{activeQuest.clues[i + 1]}"
+                </p>
+              </div>
+            ))}
           </div>
         ) : (
           <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#8888aa', lineHeight: 1.7 }}>{activeQuest.description}</p>
         )}
 
         {/* Reward + location */}
+        {(() => {
+          const hintsUsed = activeQuest.isMystery ? revealedClues - 1 : 0;
+          const currentXP = Math.max(50, activeQuest.xpReward - hintsUsed * 50);
+          return (
         <div style={{ display: 'flex', gap: '10px' }}>
-          <div style={{ background: '#13131f', border: '2px solid #f5ff00', padding: '14px 16px', boxShadow: '4px 4px 0px #b8c000' }}>
+          <div style={{ background: '#13131f', border: `2px solid ${hintsUsed > 0 ? '#f72585' : '#f5ff00'}`, padding: '14px 16px', boxShadow: `4px 4px 0px ${hintsUsed > 0 ? '#800040' : '#b8c000'}` }}>
             <div style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#5555aa', marginBottom: '6px', letterSpacing: '0.06em' }}>REWARD</div>
-            <div style={{ fontSize: '16px', fontFamily: '"Press Start 2P", monospace', color: '#f5ff00', textShadow: '0 0 10px rgba(245,255,0,0.5)' }}>+{activeQuest.xpReward} XP</div>
+            <div style={{ fontSize: '16px', fontFamily: '"Press Start 2P", monospace', color: hintsUsed > 0 ? '#f72585' : '#f5ff00', textShadow: `0 0 10px ${hintsUsed > 0 ? 'rgba(247,37,133,0.5)' : 'rgba(245,255,0,0.5)'}` }}>+{currentXP} XP</div>
           </div>
           {activeQuest.locationLabel && (
             <div style={{ background: '#13131f', border: '2px solid #2a2a3f', padding: '14px 16px', flex: 1, boxShadow: '4px 4px 0px #000' }}>
@@ -173,16 +191,18 @@ export default function ActiveQuest() {
             </div>
           )}
         </div>
+          );
+        })()}
 
-        {/* Mystery: reveal next clue OR photo upload when all clues shown */}
+        {/* Mystery: use hint button OR photo upload when done */}
         {activeQuest.isMystery && activeQuest.clues && revealedClues < activeQuest.clues.length ? (
           <PixelButton
-            variant="primary"
+            variant="ghost"
             size="lg"
             fullWidth
             onClick={() => setRevealedClues(r => r + 1)}
           >
-            🔍 REVEAL NEXT CLUE
+            USE HINT  (-50 XP)
           </PixelButton>
         ) : (
           /* Photo upload */
