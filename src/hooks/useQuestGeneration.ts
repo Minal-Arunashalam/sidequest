@@ -26,13 +26,14 @@ export function useQuestGeneration() {
       lng: number,
       locationLabel: string,
       previousTitles: string[] = [],
-      previousCategories: string[] = []
+      previousCategories: string[] = [],
+      vibeContext?: { mood: string; time: string; goal?: string }
     ): Promise<Quest | null> => {
       setState({ status: 'loading', pendingQuest: null, error: null });
 
       try {
         const result = await generateQuest(
-          lat, lng, locationLabel, previousTitles, previousCategories, lastRolledCategory.current
+          lat, lng, locationLabel, previousTitles, previousCategories, lastRolledCategory.current, vibeContext
         );
         lastRolledCategory.current = result.category;
         const quest: Quest = {

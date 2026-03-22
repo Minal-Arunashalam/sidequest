@@ -29,12 +29,20 @@ export default function ActiveQuest() {
     if (!hasGenerated.current) { hasGenerated.current = true; doGenerate(); }
   }, []);
 
+  const vibeContext = (() => {
+    const mood = searchParams.get('mood');
+    const time = searchParams.get('time');
+    const goal = searchParams.get('goal');
+    if (!mood && !time) return undefined;
+    return { mood: mood ?? '', time: time ?? '', goal: goal ?? undefined };
+  })();
+
   async function doGenerate() {
     setMode('generating');
     setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -47,7 +55,7 @@ export default function ActiveQuest() {
     setIsRerolling(true); reset(); setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
