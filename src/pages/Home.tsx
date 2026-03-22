@@ -7,6 +7,7 @@ import { CATEGORY_COLOR, CATEGORY_EMOJI } from '../types';
 
 export default function Home() {
   const { gameState, level, xpProgress, xpToNextLevel, completedQuests } = useApp();
+  const currentStreak = gameState.currentStreak ?? 0;
   const questsCompleted = gameState.questsCompleted;
   const navigate = useNavigate();
   const recentQuests = completedQuests.slice(0, 3);
@@ -33,17 +34,18 @@ export default function Home() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
         {[
-          { label: 'QUESTS', value: questsCompleted,    color: '#00f5ff' },
-          { label: 'TOTAL XP', value: gameState.totalXP, color: '#f5ff00' },
-        ].map(({ label, value, color }) => (
+          { label: 'QUESTS', display: String(questsCompleted), color: '#00f5ff' },
+          { label: 'TOTAL XP', display: String(gameState.totalXP), color: '#f5ff00' },
+          { label: 'STREAK', display: `${currentStreak}D`, color: '#f72585' },
+        ].map(({ label, display, color }) => (
           <div key={label} style={{ background: '#13131f', border: `2px solid ${color}40`, padding: '16px', boxShadow: '4px 4px 0px #000' }}>
             <p style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#5555aa', marginBottom: '10px', letterSpacing: '0.06em' }}>
               {label}
             </p>
-            <span style={{ fontSize: '24px', fontFamily: '"Press Start 2P", monospace', color, lineHeight: 1, textShadow: `0 0 12px ${color}60` }}>
-              {value}
+            <span style={{ fontSize: '18px', fontFamily: '"Press Start 2P", monospace', color, lineHeight: 1, textShadow: `0 0 12px ${color}60` }}>
+              {display}
             </span>
           </div>
         ))}

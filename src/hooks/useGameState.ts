@@ -14,10 +14,20 @@ export function useGameState() {
   };
 
   const incrementQuestsCompleted = () => {
-    setGameState((prev) => ({
-      ...prev,
-      questsCompleted: prev.questsCompleted + 1,
-    }));
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    setGameState((prev) => {
+      const last = prev.lastCompletedDate;
+      const newStreak =
+        last === today ? prev.currentStreak :
+        last === yesterday ? prev.currentStreak + 1 : 1;
+      return {
+        ...prev,
+        questsCompleted: prev.questsCompleted + 1,
+        currentStreak: newStreak,
+        lastCompletedDate: today,
+      };
+    });
   };
 
   const level = getLevel(gameState.totalXP);

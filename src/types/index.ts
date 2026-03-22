@@ -24,11 +24,15 @@ export interface Quest {
 export interface GameState {
   totalXP: number;
   questsCompleted: number;
+  currentStreak: number;
+  lastCompletedDate: string | null;
 }
 
 export const INITIAL_GAME_STATE: GameState = {
   totalXP: 0,
   questsCompleted: 0,
+  currentStreak: 0,
+  lastCompletedDate: null,
 };
 
 export const CATEGORY_EMOJI: Record<QuestCategory, string> = {

@@ -12,7 +12,7 @@ type PageMode = 'generating' | 'preview' | 'active' | 'error';
 export default function ActiveQuest() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, recentCategories, addXP, incrementQuestsCompleted } = useApp();
+  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, recentCategories, addXP, incrementQuestsCompleted, gameState } = useApp();
 
   const [mode, setMode] = useState<PageMode>('generating');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -201,6 +201,11 @@ export default function ActiveQuest() {
                 +{earnedXP} XP
               </div>
             </div>
+            {(gameState.currentStreak ?? 0) > 0 && (
+              <p style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#f72585', lineHeight: 2 }}>
+                🔥 {gameState.currentStreak} DAY STREAK
+              </p>
+            )}
             <p style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#5555aa', lineHeight: 2 }}>ADVENTURE LOGGED.</p>
             <PixelButton variant="primary" size="md" onClick={handleModalClose} fullWidth>
               CONTINUE ▶
