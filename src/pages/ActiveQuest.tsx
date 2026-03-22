@@ -194,49 +194,47 @@ export default function ActiveQuest() {
           );
         })()}
 
-        {/* Mystery: use hint button OR photo upload when done */}
-        {activeQuest.isMystery && activeQuest.clues && revealedClues < activeQuest.clues.length ? (
+        {/* Hint button — always visible until all hints used */}
+        {activeQuest.isMystery && activeQuest.clues && revealedClues < activeQuest.clues.length && (
           <PixelButton
             variant="ghost"
             size="lg"
             fullWidth
             onClick={() => setRevealedClues(r => r + 1)}
           >
-            USE HINT  (-50 XP)
+            USE HINT (-50 XP)
           </PixelButton>
-        ) : (
-          /* Photo upload */
-          <div style={{ background: '#13131f', border: '2px solid #2a2a3f', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
-            <h3 style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#e8e8f0', marginBottom: '8px', letterSpacing: '0.06em' }}>SUBMIT PROOF</h3>
-            <p style={{ fontSize: '10px', fontFamily: '"Inter", sans-serif', color: '#5555aa', marginBottom: '16px', lineHeight: 1.6 }}>
-              Snap a photo to confirm your adventure.
-            </p>
-
-            {photo ? (
-              <div style={{ position: 'relative', border: '2px solid #9b5de5' }}>
-                <img src={photo} alt="Quest proof" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
-                <button onClick={() => setPhoto(null)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(10,10,15,0.9)', border: '1px solid #f72585', color: '#f72585', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', cursor: 'pointer', fontFamily: '"Press Start 2P", monospace' }}>✕</button>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{ width: '100%', height: '130px', border: '2px dashed #2a2a3f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', background: '#0d0d1a' }}
-              >
-                <span style={{ fontSize: '28px' }}>📷</span>
-                <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#3a3a5f', letterSpacing: '0.05em' }}>TAP TO ADD PHOTO</span>
-              </div>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} />
-          </div>
         )}
+
+        {/* Photo upload — always visible */}
+        <div style={{ background: '#13131f', border: '2px solid #2a2a3f', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
+          <h3 style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#e8e8f0', marginBottom: '8px', letterSpacing: '0.06em' }}>SUBMIT PROOF</h3>
+          <p style={{ fontSize: '10px', fontFamily: '"Inter", sans-serif', color: '#5555aa', marginBottom: '16px', lineHeight: 1.6 }}>
+            Snap a photo to confirm your adventure.
+          </p>
+
+          {photo ? (
+            <div style={{ position: 'relative', border: '2px solid #9b5de5' }}>
+              <img src={photo} alt="Quest proof" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
+              <button onClick={() => setPhoto(null)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(10,10,15,0.9)', border: '1px solid #f72585', color: '#f72585', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', cursor: 'pointer', fontFamily: '"Press Start 2P", monospace' }}>✕</button>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{ width: '100%', height: '130px', border: '2px dashed #2a2a3f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', background: '#0d0d1a' }}
+            >
+              <span style={{ fontSize: '28px' }}>📷</span>
+              <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#3a3a5f', letterSpacing: '0.05em' }}>TAP TO ADD PHOTO</span>
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} />
+        </div>
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {(!activeQuest.isMystery || !activeQuest.clues || revealedClues >= activeQuest.clues.length) && (
-            <PixelButton variant="primary" size="lg" fullWidth disabled={!photo || isSubmitting} onClick={handleSubmit}>
-              {isSubmitting ? 'SUBMITTING...' : '✓ COMPLETE QUEST'}
-            </PixelButton>
-          )}
+          <PixelButton variant="primary" size="lg" fullWidth disabled={!photo || isSubmitting} onClick={handleSubmit}>
+            {isSubmitting ? 'SUBMITTING...' : '✓ COMPLETE QUEST'}
+          </PixelButton>
           <PixelButton variant="danger" size="sm" fullWidth onClick={() => { if (confirm('Abandon this quest?')) { clearActiveQuest(); reset(); navigate('/'); } }}>
             ✕ ABANDON
           </PixelButton>
