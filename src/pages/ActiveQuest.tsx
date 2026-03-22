@@ -122,7 +122,7 @@ export default function ActiveQuest() {
     setRevealedClues(1);
     setMode('active');
     // Broadcast to nearby feed
-    const geo = location ? { location, locationLabel } : null;
+    const geo = location ? { location, locationLabel } : await getLocation().catch(() => null);
     if (geo) {
       const id = await postBroadcast({ ...quest, status: 'active' as const }, geo.location.lat, geo.location.lng);
       broadcastId.current = id;
