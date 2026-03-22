@@ -73,12 +73,14 @@ export default function VibePicker() {
   const [mood, setMood] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [goal, setGoal] = useState<string | null>(null);
+  const [mystery, setMystery] = useState(false);
 
   function handleGenerate() {
     const params = new URLSearchParams();
     if (mood) params.set('mood', mood);
     if (time) params.set('time', time);
     if (goal) params.set('goal', goal);
+    if (mystery) params.set('mystery', 'true');
     navigate(`/quest?${params.toString()}`);
   }
 
@@ -123,6 +125,41 @@ export default function VibePicker() {
           <Chip key={g.value} label={g.label} emoji={g.emoji} selected={goal === g.value} onClick={() => setGoal(goal === g.value ? null : g.value)} />
         ))}
       </Section>
+
+      {/* Mystery mode */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#5555aa', letterSpacing: '0.08em' }}>
+          MODE
+        </span>
+        <button
+          onClick={() => setMystery(m => !m)}
+          style={{
+            padding: '12px 16px',
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: '8px',
+            letterSpacing: '0.04em',
+            cursor: 'pointer',
+            border: mystery ? '2px solid #9b5de5' : '2px solid #2a2a3f',
+            background: mystery ? 'rgba(155,93,229,0.12)' : '#13131f',
+            color: mystery ? '#9b5de5' : '#5555aa',
+            boxShadow: mystery ? '0 0 8px rgba(155,93,229,0.3)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            userSelect: 'none',
+            transition: 'all 120ms ease-out',
+            width: '100%',
+          }}
+        >
+          <span style={{ fontSize: '16px' }}>🔍</span>
+          <div style={{ textAlign: 'left' }}>
+            <div>MYSTERY MODE {mystery ? '[ ON ]' : '[ OFF ]'}</div>
+            <div style={{ fontSize: '7px', color: mystery ? '#7a3db5' : '#3a3a5f', marginTop: '6px', lineHeight: 1.8 }}>
+              CLUES REVEALED ONE AT A TIME
+            </div>
+          </div>
+        </button>
+      </div>
 
       {/* CTA */}
       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>

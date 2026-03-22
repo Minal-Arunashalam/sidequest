@@ -72,9 +72,18 @@ export default function QuestCard({ quest, onAccept, onReroll, isRerolling }: Qu
         </h2>
 
         {/* Description */}
-        <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#8888aa', lineHeight: 1.7 }}>
-          {quest.description}
-        </p>
+        {quest.isMystery ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', border: '1px dashed #9b5de5', background: 'rgba(155,93,229,0.08)' }}>
+            <span style={{ fontSize: '20px' }}>🔍</span>
+            <span style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#9b5de5', lineHeight: 2, letterSpacing: '0.04em' }}>
+              CLUES REVEALED ONE AT A TIME
+            </span>
+          </div>
+        ) : (
+          <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#8888aa', lineHeight: 1.7 }}>
+            {quest.description}
+          </p>
+        )}
 
         {/* Location */}
         {quest.locationLabel && (

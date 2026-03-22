@@ -21,6 +21,7 @@ export default function ActiveQuest() {
   const [showXPModal, setShowXPModal] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
   const [isRerolling, setIsRerolling] = useState(false);
+  const [revealedClues, setRevealedClues] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasGenerated = useRef(false);
 
@@ -37,12 +38,14 @@ export default function ActiveQuest() {
     return { mood: mood ?? '', time: time ?? '', goal: goal ?? undefined };
   })();
 
+  const isMysteryMode = searchParams.get('mystery') === 'true';
+
   async function doGenerate() {
     setMode('generating');
     setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext, isMysteryMode);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -55,7 +58,7 @@ export default function ActiveQuest() {
     setIsRerolling(true); reset(); setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories, vibeContext, isMysteryMode);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -68,6 +71,7 @@ export default function ActiveQuest() {
   function handleAccept() {
     if (!pendingQuest) return;
     addQuest({ ...pendingQuest, status: 'active' as const });
+    setRevealedClues(1);
     setMode('active');
   }
 
@@ -141,7 +145,20 @@ export default function ActiveQuest() {
           </h2>
         </div>
 
-        <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#8888aa', lineHeight: 1.7 }}>{activeQuest.description}</p>
+        {activeQuest.isMystery && activeQuest.clues ? (
+          <div style={{ background: '#13131f', border: '2px solid #9b5de5', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '7px', fontFamily: '"Press Start 2P", monospace', color: '#9b5de5', letterSpacing: '0.06em' }}>
+                🔍 CLUE {revealedClues} OF {activeQuest.clues.length}
+              </span>
+            </div>
+            <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#c8b8e8', lineHeight: 1.8, fontStyle: 'italic' }}>
+              "{activeQuest.clues[revealedClues - 1]}"
+            </p>
+          </div>
+        ) : (
+          <p style={{ fontSize: '13px', fontFamily: '"Inter", sans-serif', color: '#8888aa', lineHeight: 1.7 }}>{activeQuest.description}</p>
+        )}
 
         {/* Reward + location */}
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -157,35 +174,49 @@ export default function ActiveQuest() {
           )}
         </div>
 
-        {/* Photo upload */}
-        <div style={{ background: '#13131f', border: '2px solid #2a2a3f', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
-          <h3 style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#e8e8f0', marginBottom: '8px', letterSpacing: '0.06em' }}>SUBMIT PROOF</h3>
-          <p style={{ fontSize: '10px', fontFamily: '"Inter", sans-serif', color: '#5555aa', marginBottom: '16px', lineHeight: 1.6 }}>
-            Snap a photo to confirm your adventure.
-          </p>
+        {/* Mystery: reveal next clue OR photo upload when all clues shown */}
+        {activeQuest.isMystery && activeQuest.clues && revealedClues < activeQuest.clues.length ? (
+          <PixelButton
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={() => setRevealedClues(r => r + 1)}
+          >
+            🔍 REVEAL NEXT CLUE
+          </PixelButton>
+        ) : (
+          /* Photo upload */
+          <div style={{ background: '#13131f', border: '2px solid #2a2a3f', padding: '20px', boxShadow: '4px 4px 0px #000' }}>
+            <h3 style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#e8e8f0', marginBottom: '8px', letterSpacing: '0.06em' }}>SUBMIT PROOF</h3>
+            <p style={{ fontSize: '10px', fontFamily: '"Inter", sans-serif', color: '#5555aa', marginBottom: '16px', lineHeight: 1.6 }}>
+              Snap a photo to confirm your adventure.
+            </p>
 
-          {photo ? (
-            <div style={{ position: 'relative', border: '2px solid #9b5de5' }}>
-              <img src={photo} alt="Quest proof" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
-              <button onClick={() => setPhoto(null)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(10,10,15,0.9)', border: '1px solid #f72585', color: '#f72585', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', cursor: 'pointer', fontFamily: '"Press Start 2P", monospace' }}>✕</button>
-            </div>
-          ) : (
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              style={{ width: '100%', height: '130px', border: '2px dashed #2a2a3f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', background: '#0d0d1a' }}
-            >
-              <span style={{ fontSize: '28px' }}>📷</span>
-              <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#3a3a5f', letterSpacing: '0.05em' }}>TAP TO ADD PHOTO</span>
-            </div>
-          )}
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} />
-        </div>
+            {photo ? (
+              <div style={{ position: 'relative', border: '2px solid #9b5de5' }}>
+                <img src={photo} alt="Quest proof" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
+                <button onClick={() => setPhoto(null)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(10,10,15,0.9)', border: '1px solid #f72585', color: '#f72585', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', cursor: 'pointer', fontFamily: '"Press Start 2P", monospace' }}>✕</button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{ width: '100%', height: '130px', border: '2px dashed #2a2a3f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', cursor: 'pointer', background: '#0d0d1a' }}
+              >
+                <span style={{ fontSize: '28px' }}>📷</span>
+                <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#3a3a5f', letterSpacing: '0.05em' }}>TAP TO ADD PHOTO</span>
+              </div>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} style={{ display: 'none' }} />
+          </div>
+        )}
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <PixelButton variant="primary" size="lg" fullWidth disabled={!photo || isSubmitting} onClick={handleSubmit}>
-            {isSubmitting ? 'SUBMITTING...' : '✓ COMPLETE QUEST'}
-          </PixelButton>
+          {(!activeQuest.isMystery || !activeQuest.clues || revealedClues >= activeQuest.clues.length) && (
+            <PixelButton variant="primary" size="lg" fullWidth disabled={!photo || isSubmitting} onClick={handleSubmit}>
+              {isSubmitting ? 'SUBMITTING...' : '✓ COMPLETE QUEST'}
+            </PixelButton>
+          )}
           <PixelButton variant="danger" size="sm" fullWidth onClick={() => { if (confirm('Abandon this quest?')) { clearActiveQuest(); reset(); navigate('/'); } }}>
             ✕ ABANDON
           </PixelButton>

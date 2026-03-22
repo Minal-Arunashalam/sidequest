@@ -13,6 +13,8 @@ export interface GeneratedQuest {
   category: QuestCategory;
   difficulty: 1 | 2 | 3;
   xpReward: number;
+  isMystery?: boolean;
+  clues?: string[];
 }
 
 const WEIGHTS: { category: QuestCategory; weight: number }[] = [
@@ -117,7 +119,8 @@ export async function generateQuest(
   previousQuestTitles: string[] = [],
   previousCategories: string[] = [],
   lastRolledCategory: string | null = null,
-  vibeContext?: { mood: string; time: string; goal?: string }
+  vibeContext?: { mood: string; time: string; goal?: string },
+  mystery?: boolean
 ): Promise<GeneratedQuest> {
   const category = pickCategory(previousCategories, lastRolledCategory, vibeContext);
 
@@ -152,7 +155,29 @@ export async function generateQuest(
       ? `\nDo NOT generate a quest with a title or premise similar to any of these previous quests: ${previousQuestTitles.slice(-5).join('; ')}. The new quest must have a meaningfully different structure and hook.`
       : '';
 
-  const prompt = `Generate ONE creative micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
+  const prompt = mystery
+    ? `Generate ONE mystery micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
+
+The quest must:
+- Be completable within walking distance in ${timeConstraint}
+- Be grounded in this specific place
+- Be safe and legal
+- Have a final photo-worthy completion condition${avoidSection}
+
+This is a MYSTERY QUEST delivered as 3 progressive clues:
+- Clue 1: cryptic and poetic — hints at the theme or feeling, reveals nothing specific
+- Clue 2: narrows it down — mentions a type of thing or area, still leaves mystery
+- Clue 3: the clear final instruction — tells exactly what to find/do and photograph
+
+Respond ONLY with valid JSON matching this schema:
+{
+  "title": "short punchy mystery title (max 8 words)",
+  "clues": ["clue 1 text", "clue 2 text", "clue 3 text"],
+  "category": "${category}",
+  "difficulty": 2 | 3,
+  "xpReward": number between 150 and 250
+}`
+    : `Generate ONE creative micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
 
 The quest must:
 - Be completable within walking distance in ${timeConstraint}
@@ -179,17 +204,25 @@ Respond ONLY with valid JSON matching this schema:
       })()
     : '';
 
+  const mysterySystemSection = mystery
+    ? ' This is a mystery quest — generate exactly 3 progressive clues in the "clues" array. Do NOT include a "description" field.'
+    : '';
+
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 350,
+    max_tokens: 400,
     temperature: 1,
-    system: `You are a micro-adventure quest generator. You MUST set the "category" field to exactly "${category}" — never any other value. This is a hard requirement.${vibeSystemSection}`,
+    system: `You are a micro-adventure quest generator. You MUST set the "category" field to exactly "${category}" — never any other value. This is a hard requirement.${vibeSystemSection}${mysterySystemSection}`,
     messages: [{ role: 'user', content: prompt }],
   });
 
   const text = (message.content[0] as { type: 'text'; text: string }).text.trim();
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   const parsed = JSON.parse(clean) as GeneratedQuest;
-  parsed.category = category; // enforce our pre-selected category regardless of Claude's output
+  parsed.category = category;
+  if (mystery) {
+    parsed.isMystery = true;
+    parsed.description = parsed.description ?? '';
+  }
   return parsed;
 }
