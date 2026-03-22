@@ -1,6 +1,6 @@
 # SideQuest
 
-A mobile-first micro-adventure app that generates personalized, location-based quests using AI. Roll a quest, complete it in the real world, snap a photo as proof, and earn XP.
+A mobile-first micro-adventure app that generates personalized, location-based quests using AI. Roll a quest, complete it in the real world, snap a photo as proof, and earn XP. See what quests other players nearby are doing and join them — built to get people off their phones and into the same place, doing something together.
 
 Built at HooHacks 2026.
 
