@@ -13,7 +13,7 @@ type PageMode = 'generating' | 'preview' | 'active' | 'error';
 export default function ActiveQuest() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, recentCategories, addXP, incrementQuestsCompleted, gameState } = useApp();
+  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, updateQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, recentCategories, addXP, incrementQuestsCompleted, gameState } = useApp();
 
   const [mode, setMode] = useState<PageMode>('generating');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export default function ActiveQuest() {
   const [showXPModal, setShowXPModal] = useState(false);
   const [earnedXP, setEarnedXP] = useState(0);
   const [isRerolling, setIsRerolling] = useState(false);
-  const [revealedClues, setRevealedClues] = useState(1);
+  const [revealedClues, setRevealedClues] = useState(() => activeQuest?.revealedClueCount ?? 1);
   const [squadPendingQuest, setSquadPendingQuest] = useState<import('../types').Quest | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasGenerated = useRef(false);
@@ -259,7 +259,11 @@ export default function ActiveQuest() {
             variant="ghost"
             size="lg"
             fullWidth
-            onClick={() => setRevealedClues(r => r + 1)}
+            onClick={() => {
+              const next = revealedClues + 1;
+              setRevealedClues(next);
+              if (activeQuest) updateQuest(activeQuest.id, { revealedClueCount: next });
+            }}
           >
             USE HINT (-50 XP)
           </PixelButton>

@@ -21,6 +21,7 @@ export interface Quest {
   photoDataUrl?: string;
   isMystery?: boolean;
   clues?: string[];
+  revealedClueCount?: number;
 }
 
 export interface GameState {
