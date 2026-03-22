@@ -6,7 +6,7 @@ import PixelButton from '../components/ui/PixelButton';
 import { CATEGORY_COLOR, CATEGORY_EMOJI } from '../types';
 
 export default function Home() {
-  const { gameState, level, xpProgress, xpToNextLevel, completedQuests } = useApp();
+  const { gameState, level, xpProgress, xpToNextLevel, completedQuests, activeQuest } = useApp();
   const currentStreak = gameState.currentStreak ?? 0;
   const questsCompleted = gameState.questsCompleted;
   const navigate = useNavigate();
@@ -66,6 +66,26 @@ export default function Home() {
           USES YOUR LOCATION
         </p>
       </div>
+
+      {/* Active quest */}
+      {activeQuest && (
+        <div>
+          <h2 style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#00f5ff', marginBottom: '12px', letterSpacing: '0.08em' }}>
+            ACTIVE
+          </h2>
+          <button
+            onClick={() => navigate('/quest')}
+            style={{ width: '100%', background: '#13131f', border: '2px solid #00f5ff', padding: '14px 16px', boxShadow: '4px 4px 0px #003a3a', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}
+          >
+            <span style={{ fontSize: '8px', fontFamily: '"Press Start 2P", monospace', color: '#00f5ff', padding: '4px 8px', border: '1px solid #00f5ff', background: 'rgba(0,245,255,0.08)', flexShrink: 0 }}>
+              ▶ ACTIVE
+            </span>
+            <p style={{ fontSize: '9px', fontFamily: '"Press Start 2P", monospace', color: '#e8e8f0', lineHeight: 1.8, flex: 1, minWidth: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+              {activeQuest.title}
+            </p>
+          </button>
+        </div>
+      )}
 
       {/* Recent adventures */}
       {recentQuests.length > 0 && (
