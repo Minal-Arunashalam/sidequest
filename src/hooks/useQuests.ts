@@ -37,6 +37,7 @@ export function useQuests() {
   const activeQuest = quests.find((q) => q.id === activeQuestId) ?? null;
   const completedQuests = quests.filter((q) => q.status === 'completed');
   const recentTitles = completedQuests.slice(0, 5).map((q) => q.title);
+  const recentCategories = completedQuests.slice(0, 5).map((q) => q.category);
 
   const weeklyQuests = completedQuests.filter((q) => {
     if (!q.completedAt) return false;
@@ -51,6 +52,7 @@ export function useQuests() {
     completedQuests,
     weeklyQuests,
     recentTitles,
+    recentCategories,
     addQuest,
     updateQuest,
     completeQuest,

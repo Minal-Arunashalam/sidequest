@@ -12,7 +12,7 @@ type PageMode = 'generating' | 'preview' | 'active' | 'error';
 export default function ActiveQuest() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, addXP, incrementQuestsCompleted } = useApp();
+  const { activeQuest, pendingQuest, isLoading, status: genStatus, error: genError, generate, reset, addQuest, completeQuest, clearActiveQuest, getLocation, location, locationLabel, recentTitles, recentCategories, addXP, incrementQuestsCompleted } = useApp();
 
   const [mode, setMode] = useState<PageMode>('generating');
   const [localError, setLocalError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export default function ActiveQuest() {
     setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -47,7 +47,7 @@ export default function ActiveQuest() {
     setIsRerolling(true); reset(); setLocalError(null);
     try {
       const geo = location ? { location, locationLabel } : await getLocation();
-      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles);
+      await generate(geo.location.lat, geo.location.lng, geo.locationLabel, recentTitles, recentCategories);
       setMode('preview');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
