@@ -171,6 +171,9 @@ export default function VibePicker() {
             PICK A MOOD + TIME TO CONTINUE
           </p>
         )}
+        <PixelButton variant="ghost" size="md" fullWidth onClick={() => navigate('/quest')}>
+          🎲 RANDOM QUEST
+        </PixelButton>
       </div>
     </div>
   );
