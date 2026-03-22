@@ -3,6 +3,7 @@ import { AppProvider } from './context/AppContext';
 import NavBar from './components/NavBar';
 import Home from './pages/Home';
 import ActiveQuest from './pages/ActiveQuest';
+import VibePicker from './pages/VibePicker';
 import QuestLog from './pages/QuestLog';
 import Recap from './pages/Recap';
 
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'vibe', element: <VibePicker /> },
       { path: 'quest', element: <ActiveQuest /> },
       { path: 'log', element: <QuestLog /> },
       { path: 'recap', element: <Recap /> },

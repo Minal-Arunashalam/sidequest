@@ -55,7 +55,7 @@ export default function Home() {
           variant="primary"
           size="lg"
           fullWidth
-          onClick={() => navigate('/quest')}
+          onClick={() => navigate('/vibe')}
           style={{ fontSize: '12px', padding: '20px' }}
         >
           ▶ ROLL A QUEST
