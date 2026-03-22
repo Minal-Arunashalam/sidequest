@@ -84,7 +84,7 @@ export default function VibePicker() {
     navigate(`/quest?${params.toString()}`);
   }
 
-  const ready = !!mood && !!time;
+  const ready = mystery || (!!mood && !!time);
 
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', padding: '28px 20px 24px', gap: '28px', background: '#0a0a0f' }}>
