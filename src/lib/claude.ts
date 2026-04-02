@@ -1,11 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { QuestCategory } from '../types';
 import { fetchNearbyPOIs } from './places';
-
-const client = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
 
 export interface GeneratedQuest {
   title: string;
@@ -81,37 +75,6 @@ function pickCategory(
   return picked;
 }
 
-const MOOD_LABELS: Record<string, string> = {
-  energized: 'energized and ready to go',
-  meh: 'feeling meh / neutral',
-  'burnt-out': 'burnt out and low on energy',
-  anxious: 'a bit anxious',
-  bored: 'bored and restless',
-};
-
-const TIME_LABELS: Record<string, string> = {
-  '30min': '30 minutes',
-  '1hour': '1 hour',
-  '2hours': '2 hours',
-  '3plus': '3 or more hours',
-};
-
-const GOAL_LABELS: Record<string, string> = {
-  socialize: 'connect with people',
-  decompress: 'decompress and recharge',
-  creative: 'do something creative',
-  move: 'get moving and physical',
-  explore: 'discover something new',
-};
-
-const MOOD_TONE: Record<string, string> = {
-  energized: 'Make it ambitious and exciting — push them a bit.',
-  meh: 'Make it easy to start but engaging once they get going.',
-  'burnt-out': 'Keep it gentle and restorative — a "reset quest". Low stakes, calming, solo-friendly.',
-  anxious: 'Keep it grounding and focused. Small scope, clear steps, no social pressure.',
-  bored: 'Make it novel and a little weird — something that gets them out the door immediately.',
-};
-
 export async function generateQuest(
   lat: number,
   lng: number,
@@ -127,102 +90,27 @@ export async function generateQuest(
   // Fetch real nearby places from OpenStreetMap (best-effort — fails silently)
   const { featured, all: pois } = await fetchNearbyPOIs(lat, lng);
 
-  const vibeSection = vibeContext
-    ? (() => {
-        const moodLabel = MOOD_LABELS[vibeContext.mood] ?? vibeContext.mood;
-        const timeLabel = TIME_LABELS[vibeContext.time] ?? vibeContext.time;
-        const goalLabel = vibeContext.goal ? GOAL_LABELS[vibeContext.goal] ?? vibeContext.goal : null;
-        const tone = MOOD_TONE[vibeContext.mood] ?? '';
-        return `\nUser vibe:\n- Feeling: ${moodLabel}\n- Available time: ${timeLabel}${goalLabel ? `\n- Goal: ${goalLabel}` : ''}\n${tone}`;
-      })()
-    : '';
-
-  const timeConstraint = vibeContext
-    ? TIME_LABELS[vibeContext.time] ?? '30-60 minutes'
-    : '30-60 minutes';
-
-  const featuredSection = featured
-    ? `\nThis quest MUST be built around this specific real place: ${featured.name} (${featured.type}). Use its exact name in the title or description.`
-    : '';
-
-  const allPoisSection =
-    pois.length > 1
-      ? `\nOther real places nearby for flavor/context:\n${pois.slice(1).map(p => `- ${p.name} (${p.type})`).join('\n')}`
-      : '';
-
-  const avoidSection =
-    previousQuestTitles.length > 0
-      ? `\nDo NOT generate a quest with a title or premise similar to any of these previous quests: ${previousQuestTitles.slice(-5).join('; ')}. The new quest must have a meaningfully different structure and hook.`
-      : '';
-
-  const prompt = mystery
-    ? `Generate ONE mystery micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
-
-The quest must:
-- Be completable within walking distance in ${timeConstraint}
-- Be grounded in this specific place
-- Be safe and legal
-- Have a final photo-worthy completion condition${avoidSection}
-
-This is a MYSTERY QUEST delivered as 3 progressive clues:
-- Clue 1: cryptic and poetic — hints at the theme or feeling, reveals nothing specific
-- Clue 2: narrows it down — mentions a type of thing or area, still leaves mystery
-- Clue 3: the clear final instruction — tells exactly what to find/do and photograph
-
-Respond ONLY with valid JSON matching this schema:
-{
-  "title": "short punchy mystery title (max 8 words)",
-  "clues": ["clue 1 text", "clue 2 text", "clue 3 text"],
-  "category": "${category}",
-  "difficulty": 2 | 3,
-  "xpReward": number between 150 and 250
-}`
-    : `Generate ONE creative micro-adventure for someone currently at ${locationLabel} (coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}).${vibeSection}${featuredSection}${allPoisSection}
-
-The quest must:
-- Be completable within walking distance in ${timeConstraint}
-- Be genuinely fun, slightly unexpected, and grounded in this specific place
-- Be safe and legal
-- Have a concrete completion condition that can be photographed
-- Use a varied mechanic — not always "find X and photograph it". Consider: timed challenges, counting things, starting a conversation, creating something, leaving something behind, documenting a before/after, or solving a mini-mystery${avoidSection}
-
-Respond ONLY with valid JSON matching this schema:
-{
-  "title": "short punchy quest title (max 8 words)",
-  "description": "full quest instructions (2-3 sentences, specific and exciting)",
-  "category": "${category}",
-  "difficulty": 1 | 2 | 3,
-  "xpReward": number between 50 and 200
-}`;
-
-  const vibeSystemSection = vibeContext
-    ? (() => {
-        const moodLabel = MOOD_LABELS[vibeContext.mood] ?? vibeContext.mood;
-        const goalLabel = vibeContext.goal ? GOAL_LABELS[vibeContext.goal] ?? vibeContext.goal : null;
-        const tone = MOOD_TONE[vibeContext.mood] ?? '';
-        return ` The user is ${moodLabel}${goalLabel ? ` and wants to ${goalLabel}` : ''}. ${tone}`;
-      })()
-    : '';
-
-  const mysterySystemSection = mystery
-    ? ' This is a mystery quest — generate exactly 3 progressive clues in the "clues" array. Do NOT include a "description" field.'
-    : '';
-
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 400,
-    temperature: 1,
-    system: `You are a micro-adventure quest generator. You MUST set the "category" field to exactly "${category}" — never any other value. This is a hard requirement.${vibeSystemSection}${mysterySystemSection}`,
-    messages: [{ role: 'user', content: prompt }],
+  const res = await fetch('/api/generate-quest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      lat,
+      lng,
+      locationLabel,
+      featured,
+      pois,
+      category,
+      previousQuestTitles,
+      vibeContext,
+      mystery,
+    }),
   });
 
-  const text = (message.content[0] as { type: 'text'; text: string }).text.trim();
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-  const parsed = JSON.parse(clean) as GeneratedQuest;
-  parsed.category = category;
-  if (mystery) {
-    parsed.isMystery = true;
-    parsed.description = parsed.description ?? '';
+  if (!res.ok) {
+    const { error } = await res.json().catch(() => ({ error: 'Quest generation failed' }));
+    throw new Error(error ?? 'Quest generation failed');
   }
-  return parsed;
+
+  const { quest } = await res.json();
+  return quest as GeneratedQuest;
 }
